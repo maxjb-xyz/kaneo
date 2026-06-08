@@ -1051,6 +1051,7 @@
 		"sidebar": {
 			"overview": "Overview",
 			"projects": "Projects",
+			"allTasks": "All Tasks",
 			"members": "Members",
 			"invitations": "Invitations",
 			"more": "More",
