@@ -35,12 +35,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import icons from "@/constants/project-icons";
 import useDeleteProject from "@/hooks/mutations/project/use-delete-project";
 import useUpdateProject from "@/hooks/mutations/project/use-update-project";
 import { useGetTasks } from "@/hooks/queries/task/use-get-tasks";
 import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
+import { useGetActiveWorkspaceUsers } from "@/hooks/queries/workspace-users/use-get-active-workspace-users";
 import { useWorkspacePermission } from "@/hooks/use-workspace-permission";
 import { cn } from "@/lib/cn";
 import { toast } from "@/lib/toast";
@@ -127,6 +135,44 @@ function RouteComponent() {
   const { canManageProjects, canDeleteProjects } = useWorkspacePermission();
   const canEdit = canManageProjects();
   const canDelete = canDeleteProjects();
+
+  const { data: workspaceUsers } = useGetActiveWorkspaceUsers(
+    workspace?.id || "",
+  );
+
+  const UNASSIGNED = "unassigned";
+  const handleDefaultAssigneeChange = useCallback(
+    async (value: string) => {
+      if (!project?.id) return;
+      const nextId = value === UNASSIGNED ? null : value;
+      if ((project.defaultAssigneeId ?? null) === nextId) return;
+
+      try {
+        await updateProject({
+          id: project.id,
+          name: project.name,
+          slug: project.slug,
+          description: project.description ?? "",
+          icon: project.icon ?? "Layout",
+          isPublic: !!project.isPublic,
+          defaultAssigneeId: nextId,
+        });
+        setProject({ ...project, defaultAssigneeId: nextId });
+        await queryClient.invalidateQueries({ queryKey: ["projects"] });
+        await queryClient.invalidateQueries({
+          queryKey: ["tasks", project.id],
+        });
+        toast.success(t("settings:projectGeneral.toastUpdated"));
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : t("settings:projectGeneral.toastUpdateError"),
+        );
+      }
+    },
+    [project, updateProject, setProject, queryClient, t],
+  );
 
   const projectForm = useForm<ProjectFormValues>({
     resolver: standardSchemaResolver(projectSchema),
@@ -538,6 +584,45 @@ function RouteComponent() {
                 />
               </form>
             </Form>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">
+                  {t("settings:projectGeneral.defaultAssigneeLabel")}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t("settings:projectGeneral.defaultAssigneeHint")}
+                </p>
+              </div>
+              <Select
+                value={project?.defaultAssigneeId ?? UNASSIGNED}
+                onValueChange={(value) =>
+                  handleDefaultAssigneeChange(String(value ?? UNASSIGNED))
+                }
+                disabled={!canEdit}
+              >
+                <SelectTrigger className="w-64">
+                  <SelectValue
+                    placeholder={t(
+                      "settings:projectGeneral.defaultAssigneeUnassigned",
+                    )}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={UNASSIGNED}>
+                    {t("settings:projectGeneral.defaultAssigneeUnassigned")}
+                  </SelectItem>
+                  {workspaceUsers?.members?.map((member) => (
+                    <SelectItem key={member.userId} value={member.userId || ""}>
+                      {member.user?.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <Separator />
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">

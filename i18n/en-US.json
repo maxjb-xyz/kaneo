@@ -596,7 +596,10 @@
 				"iconRequired": "Icon is required"
 			},
 			"importExportTasks": "Import/Export",
-			"importExportTasksDescription": "Import and export tasks."
+			"importExportTasksDescription": "Import and export tasks.",
+			"defaultAssigneeLabel": "Default assignee",
+			"defaultAssigneeHint": "New tasks are assigned to this member unless another assignee is chosen.",
+			"defaultAssigneeUnassigned": "Unassigned"
 		},
 		"projectIntegrations": {
 			"pageTitle": "Project Integrations",

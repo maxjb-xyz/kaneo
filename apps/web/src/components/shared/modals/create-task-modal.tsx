@@ -229,6 +229,29 @@ function CreateTaskModal({
   const resolvedProjectId =
     projectId || ambientProjectId || pickedProjectId || "";
 
+  // Pre-fill the assignee with the target project's default assignee. The ref
+  // guard means we only fill when the modal opens or the resolved project
+  // changes (e.g. picking a project) — a manual assignee change is preserved.
+  const lastDefaultFillRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open) {
+      lastDefaultFillRef.current = null;
+      return;
+    }
+    if (lastDefaultFillRef.current === resolvedProjectId) return;
+    lastDefaultFillRef.current = resolvedProjectId;
+
+    const projectDefault =
+      project?.id === resolvedProjectId
+        ? (project?.defaultAssigneeId ?? null)
+        : null;
+    const pickedDefault =
+      workspaceProjects?.find((p) => p.id === resolvedProjectId)
+        ?.defaultAssigneeId ?? null;
+
+    setAssigneeId(projectDefault ?? pickedDefault ?? "");
+  }, [open, resolvedProjectId, project, workspaceProjects]);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
   const draftCreationPromiseRef = useRef<Promise<Task> | null>(null);
   const didSubmitRef = useRef(false);

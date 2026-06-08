@@ -248,6 +248,13 @@ export const projectTable = pgTable(
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
     isPublic: boolean("is_public").default(false),
     archivedAt: timestamp("archived_at", { mode: "date" }),
+    defaultAssigneeId: text("default_assignee_id").references(
+      () => userTable.id,
+      {
+        onDelete: "set null",
+        onUpdate: "cascade",
+      },
+    ),
   },
   (table) => [
     unique("project_workspace_id_id_unique").on(table.workspaceId, table.id),

@@ -596,7 +596,10 @@
 				"iconRequired": "Symbol ist erforderlich"
 			},
 			"importExportTasks": "Import/Export",
-			"importExportTasksDescription": "Importieren und Exportieren von Aufgaben."
+			"importExportTasksDescription": "Importieren und Exportieren von Aufgaben.",
+			"defaultAssigneeLabel": "Standard-Zuständiger",
+			"defaultAssigneeHint": "Neue Aufgaben werden diesem Mitglied zugewiesen, sofern keine andere zuständige Person gewählt wird.",
+			"defaultAssigneeUnassigned": "Nicht zugewiesen"
 		},
 		"projectIntegrations": {
 			"pageTitle": "Projektintegrationen",

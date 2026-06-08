@@ -261,6 +261,7 @@ async function getTasks(projectId: string, options: GetTasksOptions = {}) {
       description: project.description,
       isPublic: project.isPublic,
       workspaceId: project.workspaceId,
+      defaultAssigneeId: project.defaultAssigneeId,
       columns,
       archivedTasks,
       plannedTasks,

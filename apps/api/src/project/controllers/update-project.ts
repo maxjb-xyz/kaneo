@@ -11,6 +11,7 @@ async function updateProject(
   description: string,
   isPublic: boolean,
   workspaceId: string,
+  defaultAssigneeId?: string | null,
 ) {
   const [existingProject] = await db
     .select()
@@ -36,6 +37,9 @@ async function updateProject(
       slug,
       description,
       isPublic,
+      // Only touch the default assignee when the caller provides the field, so
+      // existing update flows that omit it leave the current value untouched.
+      ...(defaultAssigneeId !== undefined ? { defaultAssigneeId } : {}),
     })
     .where(eq(projectTable.id, id))
     .returning();

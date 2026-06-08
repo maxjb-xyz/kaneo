@@ -1,7 +1,12 @@
 import { and, eq, max } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import db from "../../database";
-import { columnTable, taskTable, userTable } from "../../database/schema";
+import {
+  columnTable,
+  projectTable,
+  taskTable,
+  userTable,
+} from "../../database/schema";
 import { publishEvent } from "../../events";
 import { assertValidTaskStatus } from "../validate-task-fields";
 import getNextTaskNumber from "./get-next-task-number";
@@ -32,10 +37,21 @@ async function createTask({
 
   await assertValidTaskStatus(resolvedStatus, projectId);
 
+  // Fall back to the project's default assignee when the caller didn't choose
+  // one. An explicit assignee always wins.
+  let effectiveUserId = userId || null;
+  if (!effectiveUserId) {
+    const [project] = await db
+      .select({ defaultAssigneeId: projectTable.defaultAssigneeId })
+      .from(projectTable)
+      .where(eq(projectTable.id, projectId));
+    effectiveUserId = project?.defaultAssigneeId ?? null;
+  }
+
   const [assignee] = await db
     .select({ name: userTable.name })
     .from(userTable)
-    .where(eq(userTable.id, userId ?? ""));
+    .where(eq(userTable.id, effectiveUserId ?? ""));
 
   const nextTaskNumber = await getNextTaskNumber(projectId);
 
@@ -64,7 +80,7 @@ async function createTask({
     .insert(taskTable)
     .values({
       projectId,
-      userId: userId || null,
+      userId: effectiveUserId,
       title: title || "",
       status: resolvedStatus,
       columnId: column?.id ?? null,
