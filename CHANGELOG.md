@@ -1,3 +1,4 @@
+## [2.7.8](https://github.com/maxjb-xyz/kaneo/compare/v0.0.1...v2.7.8) (2026-06-08)
 ## [2.7.7](https://github.com/usekaneo/kaneo/compare/v2.7.6...v2.7.7) (2026-05-29)
 
 
