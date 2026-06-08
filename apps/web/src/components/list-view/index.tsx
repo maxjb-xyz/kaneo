@@ -33,6 +33,10 @@ import useBulkSelectionStore from "@/store/bulk-selection";
 import useProjectStore from "@/store/project";
 import type { ProjectWithTasks } from "@/types/project";
 import BulkToolbar from "../bulk-selection/bulk-toolbar";
+import {
+  isValidDropTarget,
+  reconcilePositionsByProject,
+} from "../kanban-board/multi-project-drag";
 import { ArchiveTasksModal } from "../shared/modals/archive-tasks-modal";
 import CreateTaskModal from "../shared/modals/create-task-modal";
 import TaskRow from "./task-row";
@@ -40,11 +44,23 @@ import TaskRow from "./task-row";
 type ListViewProps = {
   project: ProjectWithTasks;
   disableDragDrop?: boolean;
+  projectColumns?: Record<string, string[]>;
+  onProjectChange?: (next: ProjectWithTasks) => void;
 };
 
-function ListView({ project, disableDragDrop = false }: ListViewProps) {
+function ListView({
+  project,
+  disableDragDrop = false,
+  projectColumns,
+  onProjectChange,
+}: ListViewProps) {
   const { t } = useTranslation();
   const { setProject } = useProjectStore();
+
+  const commitProject = (next: ProjectWithTasks) => {
+    if (onProjectChange) onProjectChange(next);
+    else setProject(next);
+  };
   const {
     setAvailableTasks,
     focusNext,
@@ -198,14 +214,26 @@ function ListView({ project, disableDragDrop = false }: ListViewProps) {
         }
         destinationColumn.tasks.splice(destinationIndex, 0, task);
 
-        destinationColumn.tasks.forEach((t, index) => {
+        const reconciled = projectColumns
+          ? reconcilePositionsByProject(destinationColumn.tasks)
+          : destinationColumn.tasks.map((t, index) => ({
+              ...t,
+              position: index,
+            }));
+        destinationColumn.tasks = reconciled as typeof destinationColumn.tasks;
+        for (const tk of destinationColumn.tasks) {
           updateTask({
-            ...t,
+            ...tk,
             status: destinationColumn.id,
-            position: index,
+            position: tk.position,
           });
-        });
+        }
       } else {
+        if (!isValidDropTarget(task, destinationColumn.id, projectColumns)) {
+          sourceColumn.tasks.splice(sourceTaskIndex, 0, task);
+          return;
+        }
+
         task.status = destinationColumn.id;
         const destinationIndex =
           overId === destinationColumn.id
@@ -214,24 +242,33 @@ function ListView({ project, disableDragDrop = false }: ListViewProps) {
 
         destinationColumn.tasks.splice(destinationIndex, 0, task);
 
-        destinationColumn.tasks.forEach((t, index) => {
+        const reconciledDest = projectColumns
+          ? reconcilePositionsByProject(destinationColumn.tasks)
+          : destinationColumn.tasks.map((t, index) => ({
+              ...t,
+              position: index,
+            }));
+        destinationColumn.tasks =
+          reconciledDest as typeof destinationColumn.tasks;
+        for (const tk of destinationColumn.tasks) {
           updateTask({
-            ...t,
+            ...tk,
             status: destinationColumn.id,
-            position: index,
+            position: tk.position,
           });
-        });
+        }
 
-        sourceColumn.tasks.forEach((t, index) => {
-          updateTask({
-            ...t,
-            position: index,
-          });
-        });
+        const reconciledSource = projectColumns
+          ? reconcilePositionsByProject(sourceColumn.tasks)
+          : sourceColumn.tasks.map((t, index) => ({ ...t, position: index }));
+        sourceColumn.tasks = reconciledSource as typeof sourceColumn.tasks;
+        for (const tk of sourceColumn.tasks) {
+          updateTask({ ...tk, position: tk.position });
+        }
       }
     });
 
-    setProject(updatedProject);
+    commitProject(updatedProject);
   };
 
   const toggleSection = (sectionId: string) => {

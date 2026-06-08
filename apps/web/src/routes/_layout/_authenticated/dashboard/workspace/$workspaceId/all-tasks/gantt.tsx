@@ -1,16 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import ProjectLayout from "@/components/common/project-layout";
+import AllTasksLayout from "@/components/common/all-tasks-layout";
 import { GanttView } from "@/components/gantt/gantt-view";
 import PageTitle from "@/components/page-title";
-import { useGetTasks } from "@/hooks/queries/task/use-get-tasks";
+import { useGetWorkspaceTasks } from "@/hooks/queries/task/use-get-workspace-tasks";
+import type { ProjectWithTasks } from "@/types/project";
 
-type GanttSearchParams = {
-  taskId?: string;
-};
+type GanttSearchParams = { taskId?: string };
 
 export const Route = createFileRoute(
-  "/_layout/_authenticated/dashboard/workspace/$workspaceId/project/$projectId/gantt",
+  "/_layout/_authenticated/dashboard/workspace/$workspaceId/all-tasks/gantt",
 )({
   component: RouteComponent,
   validateSearch: (search: Record<string, unknown>): GanttSearchParams => ({
@@ -20,23 +19,19 @@ export const Route = createFileRoute(
 
 function RouteComponent() {
   const { t } = useTranslation();
-  const { projectId, workspaceId } = Route.useParams();
+  const { workspaceId } = Route.useParams();
   const { taskId } = Route.useSearch();
   const navigate = useNavigate();
-  const { data: project } = useGetTasks(projectId);
+  const { data } = useGetWorkspaceTasks(workspaceId);
 
   return (
-    <ProjectLayout
-      projectId={projectId}
-      workspaceId={workspaceId}
-      activeView="gantt"
-    >
+    <AllTasksLayout workspaceId={workspaceId} activeView="gantt">
       <PageTitle
-        title={t("tasks:gantt.pageTitle", { name: project?.name })}
+        title={t("navigation:sidebar.allTasks", { defaultValue: "All Tasks" })}
         hideAppName
       />
       <GanttView
-        project={project}
+        project={data as unknown as ProjectWithTasks | undefined}
         workspaceId={workspaceId}
         taskId={taskId}
         onOpenTask={(id) =>
@@ -44,6 +39,6 @@ function RouteComponent() {
         }
         onCloseTask={() => navigate({ to: ".", search: {}, replace: true })}
       />
-    </ProjectLayout>
+    </AllTasksLayout>
   );
 }

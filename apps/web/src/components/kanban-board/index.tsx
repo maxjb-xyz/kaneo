@@ -24,16 +24,32 @@ import useProjectStore from "@/store/project";
 import type { ProjectWithTasks } from "@/types/project";
 import BulkToolbar from "../bulk-selection/bulk-toolbar";
 import Column from "./column";
+import {
+  isValidDropTarget,
+  reconcilePositionsByProject,
+} from "./multi-project-drag";
 import TaskCard from "./task-card";
 
 type KanbanBoardProps = {
   project: ProjectWithTasks;
   disableDragDrop?: boolean;
+  projectColumns?: Record<string, string[]>;
+  onProjectChange?: (next: ProjectWithTasks) => void;
 };
 
-function KanbanBoard({ project, disableDragDrop = false }: KanbanBoardProps) {
+function KanbanBoard({
+  project,
+  disableDragDrop = false,
+  projectColumns,
+  onProjectChange,
+}: KanbanBoardProps) {
   const queryClient = useQueryClient();
   const { setProject } = useProjectStore();
+
+  const commitProject = (next: ProjectWithTasks) => {
+    if (onProjectChange) onProjectChange(next);
+    else setProject(next);
+  };
   const {
     setAvailableTasks,
     focusNext,
@@ -154,14 +170,27 @@ function KanbanBoard({ project, disableDragDrop = false }: KanbanBoardProps) {
         }
         destinationColumn.tasks.splice(destinationIndex, 0, task);
 
-        destinationColumn.tasks.forEach((t, index) => {
-          updateTask({ ...t, position: index });
-        });
-
-        queryClient.invalidateQueries({
-          queryKey: ["projects", project.workspaceId],
-        });
+        const reconciled = projectColumns
+          ? reconcilePositionsByProject(destinationColumn.tasks)
+          : destinationColumn.tasks.map((t, index) => ({
+              ...t,
+              position: index,
+            }));
+        destinationColumn.tasks = reconciled as typeof destinationColumn.tasks;
+        for (const tk of destinationColumn.tasks) {
+          updateTask({ ...tk, position: tk.position });
+        }
+        if (!projectColumns) {
+          queryClient.invalidateQueries({
+            queryKey: ["projects", project.workspaceId],
+          });
+        }
       } else {
+        if (!isValidDropTarget(task, destinationColumn.id, projectColumns)) {
+          sourceColumn.tasks.splice(sourceTaskIndex, 0, task);
+          return;
+        }
+
         task.status = destinationColumn.id;
         const destinationIndex =
           overId === destinationColumn.id
@@ -170,17 +199,33 @@ function KanbanBoard({ project, disableDragDrop = false }: KanbanBoardProps) {
 
         destinationColumn.tasks.splice(destinationIndex, 0, task);
 
-        destinationColumn.tasks.forEach((t, index) => {
-          updateTask({ ...t, status: destinationColumn.id, position: index });
-        });
+        const reconciledDest = projectColumns
+          ? reconcilePositionsByProject(destinationColumn.tasks)
+          : destinationColumn.tasks.map((t, index) => ({
+              ...t,
+              position: index,
+            }));
+        destinationColumn.tasks =
+          reconciledDest as typeof destinationColumn.tasks;
+        for (const tk of destinationColumn.tasks) {
+          updateTask({
+            ...tk,
+            status: destinationColumn.id,
+            position: tk.position,
+          });
+        }
 
-        sourceColumn.tasks.forEach((t, index) => {
-          updateTask({ ...t, position: index });
-        });
+        const reconciledSource = projectColumns
+          ? reconcilePositionsByProject(sourceColumn.tasks)
+          : sourceColumn.tasks.map((t, index) => ({ ...t, position: index }));
+        sourceColumn.tasks = reconciledSource as typeof sourceColumn.tasks;
+        for (const tk of sourceColumn.tasks) {
+          updateTask({ ...tk, position: tk.position });
+        }
       }
     });
 
-    setProject(updatedProject);
+    commitProject(updatedProject);
     setActiveId(null);
   };
 

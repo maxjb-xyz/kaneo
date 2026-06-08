@@ -21,6 +21,9 @@ export function useUpdateTask() {
         queryKey: ["projects"],
       });
       queryClient.invalidateQueries({
+        queryKey: ["workspace-tasks"],
+      });
+      queryClient.invalidateQueries({
         queryKey: ["activities", variables.id],
       });
     },

@@ -36,6 +36,7 @@ import { config } from "dotenv-mono";
 import { count, eq, sql } from "drizzle-orm";
 import db, { schema } from "./database";
 import { publishEvent } from "./events";
+import prepareAccountDeletion from "./user/controllers/prepare-account-deletion";
 import { checkRegistrationAllowed } from "./utils/check-registration-allowed";
 import { checkWorkspaceName } from "./utils/check-workspace-name";
 import { generateDemoName } from "./utils/generate-demo-name";
@@ -177,6 +178,12 @@ export const auth = betterAuth({
         type: "string",
         input: true,
         required: false,
+      },
+    },
+    deleteUser: {
+      enabled: true,
+      beforeDelete: async (user: { id: string }) => {
+        await prepareAccountDeletion(user.id);
       },
     },
   },

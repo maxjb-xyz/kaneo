@@ -169,11 +169,15 @@ export default function BacklogTaskRow({ task }: BacklogTaskRowProps) {
                 <span className="text-sm text-foreground truncate">
                   {task.title}
                 </span>
-                {showLabels && (
-                  <div className="flex items-center gap-1">
-                    <TaskCardLabels taskId={task.id} />
-                  </div>
-                )}
+                <div className="flex items-center gap-1">
+                  {task.projectSlug ? (
+                    <span className="inline-flex items-center gap-1 rounded-sm border border-border/60 px-1.5 py-px text-[10px] font-medium text-muted-foreground">
+                      {task.projectSlug.toUpperCase()}
+                    </span>
+                  ) : null}
+
+                  {showLabels && <TaskCardLabels taskId={task.id} />}
+                </div>
               </div>
             </div>
 

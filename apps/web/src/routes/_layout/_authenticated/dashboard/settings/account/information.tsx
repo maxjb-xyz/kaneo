@@ -1,13 +1,23 @@
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import PageTitle from "@/components/page-title";
 import useAuth from "@/components/providers/auth-provider/hooks/use-auth";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -19,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import useUpdateUserProfile from "@/hooks/mutations/use-update-user-profile";
+import { authClient } from "@/lib/auth-client";
 import { toast } from "@/lib/toast";
 
 export const Route = createFileRoute(
@@ -51,7 +62,34 @@ function RouteComponent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { mutateAsync: updateProfile } = useUpdateUserProfile();
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      const { error } = await (
+        authClient as typeof authClient & {
+          deleteUser: () => Promise<{ error: { message?: string } | null }>;
+        }
+      ).deleteUser();
+      if (error) {
+        throw new Error(
+          error.message || t("settings:informationPage.dangerZone.deleteError"),
+        );
+      }
+      window.location.href = "/auth/sign-in";
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t("settings:informationPage.dangerZone.deleteError"),
+      );
+      setIsDeleting(false);
+      setIsDeleteOpen(false);
+    }
+  };
   const isSavingRef = useRef(false);
   const queuedSaveRef = useRef<ProfileFormValues | null>(null);
   const lastSavedRef = useRef<NormalizedProfileValues | null>(null);
@@ -265,7 +303,68 @@ function RouteComponent() {
             </Form>
           </div>
         </div>
+
+        <div className="space-y-6">
+          <div className="space-y-1">
+            <h2 className="text-md font-medium text-destructive">
+              {t("settings:informationPage.dangerZone.title")}
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {t("settings:informationPage.dangerZone.subtitle")}
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between border border-destructive/40 rounded-md p-4 bg-destructive/5">
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium">
+                {t("settings:informationPage.dangerZone.deleteTitle")}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t("settings:informationPage.dangerZone.deleteDescription")}
+              </p>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setIsDeleteOpen(true)}
+            >
+              {t("settings:informationPage.dangerZone.deleteButton")}
+            </Button>
+          </div>
+        </div>
       </div>
+
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("settings:informationPage.dangerZone.confirmTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("settings:informationPage.dangerZone.confirmDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogClose
+              render={
+                <Button variant="outline" disabled={isDeleting}>
+                  {t("common:actions.cancel")}
+                </Button>
+              }
+            />
+            <Button
+              variant="destructive"
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteAccount();
+              }}
+              disabled={isDeleting}
+            >
+              {t("settings:informationPage.dangerZone.confirmButton")}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
