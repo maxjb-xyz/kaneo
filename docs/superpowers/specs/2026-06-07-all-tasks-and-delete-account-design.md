@@ -91,9 +91,17 @@ New query hook + fetcher:
   `["workspace-tasks", workspaceId]`.
 
 All three route components read from this one hook and feed the synthesized project into the
-shared view components. They do **not** write to `useProjectStore` (that store is single-project;
-the pooled page keeps its data in the query cache / local state to avoid clobbering project
-board state).
+shared view components. The pooled page keeps its data in the query cache / local state rather
+than the single-project `useProjectStore`.
+
+**Store-coupling caveat:** `KanbanBoard.handleDragEnd` (and the other view drag handlers)
+currently persist optimistic updates by calling `setProject` from `useProjectStore`. Reusing
+them as-is from the pooled page would clobber the single-project store. The multi-project mode
+therefore routes optimistic updates through an injected callback (e.g. an optional
+`onProjectChange?: (next: ProjectWithTasks) => void` prop) instead of writing `useProjectStore`
+directly; when the prop is absent, the components fall back to the existing `useProjectStore`
+behavior so single-project boards are unchanged. The pooled page passes a setter that updates
+its local/query-cached copy.
 
 ### Frontend — multi-project drag
 
