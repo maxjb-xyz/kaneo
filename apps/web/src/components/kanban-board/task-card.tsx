@@ -249,6 +249,12 @@ function TaskCard({ task }: TaskCardProps) {
             )}
 
             <div className="flex items-center gap-1.5">
+              {task.projectSlug ? (
+                <span className="inline-flex items-center gap-1 rounded-sm border border-border/60 px-1.5 py-px text-[10px] font-medium text-muted-foreground">
+                  {task.projectSlug.toUpperCase()}
+                </span>
+              ) : null}
+
               {showPriority && (
                 <span className="inline-flex items-center gap-1 rounded border border-border/70 bg-muted/55 px-2 py-1 text-[10px] font-medium text-muted-foreground">
                   {getPriorityIcon(task.priority ?? "")}
