@@ -37,7 +37,6 @@ import { getPriorityIcon } from "@/lib/priority";
 import { toast } from "@/lib/toast";
 import queryClient from "@/query-client";
 import useBulkSelectionStore from "@/store/bulk-selection";
-import useProjectStore from "@/store/project";
 import { useUserPreferencesStore } from "@/store/user-preferences";
 import type Task from "@/types/task";
 import TaskCardContextMenuContent from "../kanban-board/task-card-context-menu/task-card-context-menu-content";
@@ -61,7 +60,6 @@ function TaskRow({ task, projectSlug }: TaskRowProps) {
     isDragging,
   } = useSortable({ id: task.id });
 
-  const { project } = useProjectStore();
   const { data: workspace } = useActiveWorkspace();
   const {
     showAssignees,
@@ -127,7 +125,7 @@ function TaskRow({ task, projectSlug }: TaskRowProps) {
   };
 
   const handleClick = (e: React.MouseEvent) => {
-    if (!project || !task) return;
+    if (!task) return;
     if (e.defaultPrevented) return;
 
     if (e.metaKey || e.ctrlKey) {
@@ -162,8 +160,9 @@ function TaskRow({ task, projectSlug }: TaskRowProps) {
     try {
       await deleteTask(task.id);
       queryClient.invalidateQueries({
-        queryKey: ["tasks", project?.id],
+        queryKey: ["tasks", task.projectId],
       });
+      queryClient.invalidateQueries({ queryKey: ["workspace-tasks"] });
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : t("tasks:delete.error"),
@@ -205,7 +204,7 @@ function TaskRow({ task, projectSlug }: TaskRowProps) {
             )}
             {showTaskNumbers && (
               <div className="text-xs font-mono text-muted-foreground flex-shrink-0">
-                {projectSlug}-{task.number}
+                {task.projectSlug ?? projectSlug}-{task.number}
               </div>
             )}
 
@@ -382,11 +381,11 @@ function TaskRow({ task, projectSlug }: TaskRowProps) {
           </div>
         </ContextMenuTrigger>
 
-        {project && workspace && (
+        {workspace && (
           <TaskCardContextMenuContent
             task={task}
             taskCardContext={{
-              projectId: project.id,
+              projectId: task.projectId,
               worskpaceId: workspace.id,
             }}
             onDeleteClick={() => setIsDeleteTaskModalOpen(true)}

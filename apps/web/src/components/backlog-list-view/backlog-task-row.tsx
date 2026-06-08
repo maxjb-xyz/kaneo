@@ -82,7 +82,7 @@ export default function BacklogTaskRow({ task }: BacklogTaskRowProps) {
   };
 
   const handleClick = (e: React.MouseEvent) => {
-    if (!project || !task) return;
+    if (!task) return;
     if (e.defaultPrevented) return;
 
     if (e.metaKey || e.ctrlKey) {
@@ -117,8 +117,9 @@ export default function BacklogTaskRow({ task }: BacklogTaskRowProps) {
     try {
       await deleteTask(task.id);
       queryClient.invalidateQueries({
-        queryKey: ["tasks", project?.id],
+        queryKey: ["tasks", task.projectId],
       });
+      queryClient.invalidateQueries({ queryKey: ["workspace-tasks"] });
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : t("tasks:delete.error"),
@@ -160,7 +161,7 @@ export default function BacklogTaskRow({ task }: BacklogTaskRowProps) {
             )}
             {showTaskNumbers && (
               <div className="text-xs font-mono text-muted-foreground flex-shrink-0">
-                {project?.slug}-{task.number}
+                {task.projectSlug ?? project?.slug}-{task.number}
               </div>
             )}
 
@@ -226,11 +227,11 @@ export default function BacklogTaskRow({ task }: BacklogTaskRowProps) {
           </div>
         </ContextMenuTrigger>
 
-        {project && workspace && (
+        {workspace && (
           <TaskCardContextMenuContent
             task={task}
             taskCardContext={{
-              projectId: project.id,
+              projectId: task.projectId,
               worskpaceId: workspace.id,
             }}
             onDeleteClick={() => setIsDeleteTaskModalOpen(true)}

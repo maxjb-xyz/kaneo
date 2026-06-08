@@ -128,7 +128,10 @@ function TaskCard({ task }: TaskCardProps) {
   function handleTaskCardClick(
     e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>,
   ) {
-    if (!project || !task || !workspace) return;
+    // Note: do not require the global project store here. On the pooled All
+    // Tasks page there is no active project; each task carries its own
+    // projectId/projectSlug.
+    if (!task || !workspace) return;
 
     if ((e as React.MouseEvent).metaKey || (e as React.KeyboardEvent).ctrlKey) {
       toggleSelection(task.id);
@@ -161,8 +164,9 @@ function TaskCard({ task }: TaskCardProps) {
     try {
       await deleteTask(task.id);
       queryClient.invalidateQueries({
-        queryKey: ["tasks", project?.id],
+        queryKey: ["tasks", task.projectId],
       });
+      queryClient.invalidateQueries({ queryKey: ["workspace-tasks"] });
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : t("tasks:delete.error"),
@@ -198,7 +202,7 @@ function TaskCard({ task }: TaskCardProps) {
           >
             {showTaskNumbers && (
               <div className="mb-2 text-[10px] font-mono text-muted-foreground/90">
-                {project?.slug}-{task.number}
+                {task.projectSlug ?? project?.slug}-{task.number}
               </div>
             )}
 
@@ -391,11 +395,11 @@ function TaskCard({ task }: TaskCardProps) {
           </div>
         </ContextMenuTrigger>
 
-        {project && workspace && (
+        {workspace && (
           <TaskCardContextMenuContent
             task={task}
             taskCardContext={{
-              projectId: project.id,
+              projectId: task.projectId,
               worskpaceId: workspace.id,
             }}
             onDeleteClick={() => setIsDeleteTaskModalOpen(true)}

@@ -135,9 +135,11 @@ function RouteComponent() {
         <TaskDetailsSheet
           taskId={taskId}
           projectId={
-            sortedProject?.columns
-              .flatMap((c) => c.tasks)
-              .find((tk) => tk.id === taskId)?.projectId ?? ""
+            [
+              ...(local?.columns.flatMap((c) => c.tasks) ?? []),
+              ...(local?.plannedTasks ?? []),
+              ...(local?.archivedTasks ?? []),
+            ].find((tk) => tk.id === taskId)?.projectId ?? ""
           }
           workspaceId={workspaceId}
           onClose={() => navigate({ to: ".", search: {}, replace: true })}
