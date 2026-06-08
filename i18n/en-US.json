@@ -114,6 +114,7 @@
 				"createMore": "Create more",
 				"createButton": "Create Task",
 				"untitledTask": "Untitled task",
+				"selectProject": "Select a project",
 				"labelColors": {
 					"stone": "Stone",
 					"slate": "Slate",

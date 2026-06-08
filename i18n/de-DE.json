@@ -114,6 +114,7 @@
 				"createMore": "Weitere erstellen",
 				"createButton": "Aufgabe erstellen",
 				"untitledTask": "Unbenannte Aufgabe",
+				"selectProject": "Projekt auswählen",
 				"labelColors": {
 					"stone": "Stein",
 					"slate": "Schiefer",

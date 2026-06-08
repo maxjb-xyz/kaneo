@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import { produce } from "immer";
 import {
@@ -36,11 +37,19 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import useCreateLabel from "@/hooks/mutations/label/use-create-label";
 import useCreateTask from "@/hooks/mutations/task/use-create-task";
 import { useDeleteTask } from "@/hooks/mutations/task/use-delete-task";
 import { useUpdateTask } from "@/hooks/mutations/task/use-update-task";
 import useGetLabelsByWorkspace from "@/hooks/queries/label/use-get-labels-by-workspace";
+import useGetProjects from "@/hooks/queries/project/use-get-projects";
 import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
 import { useGetActiveWorkspaceUsers } from "@/hooks/queries/workspace-users/use-get-active-workspace-users";
 import { useWorkspacePermission } from "@/hooks/use-workspace-permission";
@@ -195,9 +204,17 @@ function CreateTaskModal({
   const [selectedColor, setSelectedColor] = useState<LabelColor>("gray");
   const [newLabelName, setNewLabelName] = useState("");
 
+  const queryClient = useQueryClient();
+  const [pickedProjectId, setPickedProjectId] = useState("");
+  const { data: workspaceProjects } = useGetProjects({
+    workspaceId: workspace?.id || "",
+  });
+
   const routeProjectId =
     location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? null;
-  const resolvedProjectId = projectId || project?.id || routeProjectId || "";
+  const needsProjectPicker = !(projectId || project?.id || routeProjectId);
+  const resolvedProjectId =
+    projectId || project?.id || routeProjectId || pickedProjectId || "";
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const draftCreationPromiseRef = useRef<Promise<Task> | null>(null);
@@ -247,6 +264,7 @@ function CreateTaskModal({
     draftCreationPromiseRef.current = null;
     didSubmitRef.current = false;
     setDraftTask(null);
+    setPickedProjectId("");
     onClose();
 
     if (shouldDeleteDraft) {
@@ -422,6 +440,12 @@ function CreateTaskModal({
           ? t("common:modals.createTask.successUpdated")
           : t("common:modals.createTask.successCreated"),
       );
+
+      if (needsProjectPicker && workspace?.id) {
+        queryClient.invalidateQueries({
+          queryKey: ["workspace-tasks", workspace.id],
+        });
+      }
 
       if (createMore) {
         setTitle("");
@@ -616,6 +640,27 @@ function CreateTaskModal({
           className="flex flex-col flex-1 min-h-0 space-y-6"
         >
           <div className="flex-1 min-h-0 overflow-y-auto space-y-6 px-6">
+            {needsProjectPicker ? (
+              <Select
+                value={pickedProjectId}
+                onValueChange={(value) =>
+                  setPickedProjectId(String(value ?? ""))
+                }
+              >
+                <SelectTrigger className="w-56">
+                  <SelectValue
+                    placeholder={t("common:modals.createTask.selectProject")}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {(workspaceProjects ?? []).map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
             <Input
               unstyled
               value={title}
@@ -1041,7 +1086,9 @@ function CreateTaskModal({
             </Button>
             <Button
               type="submit"
-              disabled={!title.trim()}
+              disabled={
+                !title.trim() || (needsProjectPicker && !pickedProjectId)
+              }
               size="sm"
               className="disabled:opacity-50"
             >
