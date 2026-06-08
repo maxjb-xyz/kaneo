@@ -32,21 +32,31 @@ import useProjectStore from "@/store/project";
 import type { ProjectWithTasks } from "@/types/project";
 import type Task from "@/types/task";
 import BacklogBulkToolbar from "../bulk-selection/backlog-bulk-toolbar";
+import { reconcilePositionsByProject } from "../kanban-board/multi-project-drag";
 import CreateTaskModal from "../shared/modals/create-task-modal";
 import BacklogTaskRow from "./backlog-task-row";
 
 type BacklogListViewProps = {
   project?: ProjectWithTasks;
   disableDragDrop?: boolean;
+  projectColumns?: Record<string, string[]>;
+  onProjectChange?: (next: ProjectWithTasks) => void;
 };
 
 function BacklogListView({
   project,
   disableDragDrop = false,
+  projectColumns,
+  onProjectChange,
 }: BacklogListViewProps) {
   const { t } = useTranslation();
   const { mutate: updateTask } = useUpdateTask();
   const { setProject } = useProjectStore();
+
+  const commitProject = (next: ProjectWithTasks) => {
+    if (onProjectChange) onProjectChange(next);
+    else setProject(next);
+  };
   const {
     setAvailableTasks,
     focusNext,
@@ -230,17 +240,24 @@ function BacklogListView({
           draft.archivedTasks?.splice(destinationIndex, 0, task);
         }
 
-        const finalTasks =
+        const rawFinalTasks =
           activeTask.status === "planned"
             ? draft.plannedTasks || []
             : draft.archivedTasks || [];
 
-        finalTasks.forEach((t, index) => {
-          updateTask({
-            ...t,
-            position: index,
-          });
-        });
+        const reconciledFinal = projectColumns
+          ? reconcilePositionsByProject(rawFinalTasks)
+          : rawFinalTasks.map((t, index) => ({ ...t, position: index }));
+
+        if (activeTask.status === "planned") {
+          draft.plannedTasks = reconciledFinal as typeof draft.plannedTasks;
+        } else {
+          draft.archivedTasks = reconciledFinal as typeof draft.archivedTasks;
+        }
+
+        for (const tk of reconciledFinal) {
+          updateTask({ ...tk, position: tk.position });
+        }
       } else {
         task.status = targetSection;
 
@@ -250,34 +267,47 @@ function BacklogListView({
           draft.archivedTasks = [...(draft.archivedTasks || []), task];
         }
 
-        const updatedTasks =
+        const rawUpdatedTasks =
           targetSection === "planned"
             ? draft.plannedTasks || []
             : draft.archivedTasks || [];
 
-        updatedTasks.forEach((t, index) => {
-          updateTask({
-            ...t,
-            status: targetSection,
-            position: index,
-          });
-        });
+        const reconciledDest = projectColumns
+          ? reconcilePositionsByProject(rawUpdatedTasks)
+          : rawUpdatedTasks.map((t, index) => ({ ...t, position: index }));
 
-        const sourceTasks =
+        if (targetSection === "planned") {
+          draft.plannedTasks = reconciledDest as typeof draft.plannedTasks;
+        } else {
+          draft.archivedTasks = reconciledDest as typeof draft.archivedTasks;
+        }
+
+        for (const tk of reconciledDest) {
+          updateTask({ ...tk, status: targetSection, position: tk.position });
+        }
+
+        const rawSourceTasks =
           activeTask.status === "planned"
             ? draft.plannedTasks || []
             : draft.archivedTasks || [];
 
-        sourceTasks.forEach((t, index) => {
-          updateTask({
-            ...t,
-            position: index,
-          });
-        });
+        const reconciledSource = projectColumns
+          ? reconcilePositionsByProject(rawSourceTasks)
+          : rawSourceTasks.map((t, index) => ({ ...t, position: index }));
+
+        if (activeTask.status === "planned") {
+          draft.plannedTasks = reconciledSource as typeof draft.plannedTasks;
+        } else {
+          draft.archivedTasks = reconciledSource as typeof draft.archivedTasks;
+        }
+
+        for (const tk of reconciledSource) {
+          updateTask({ ...tk, position: tk.position });
+        }
       }
     });
 
-    setProject(updatedProject);
+    commitProject(updatedProject);
   };
 
   const toggleSection = (sectionId: string) => {
