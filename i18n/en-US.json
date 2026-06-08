@@ -321,6 +321,17 @@
 				"nameRequired": "Name is required",
 				"nameShort": "Name must be at least 2 characters",
 				"invalidEmail": "Invalid email address"
+			},
+			"dangerZone": {
+				"title": "Danger zone",
+				"subtitle": "Irreversible actions for your account.",
+				"deleteTitle": "Delete account",
+				"deleteDescription": "Permanently delete your account and personal data.",
+				"deleteButton": "Delete account",
+				"confirmTitle": "Delete your account?",
+				"confirmDescription": "This permanently deletes your account and cannot be undone. Workspaces you solely own will also be deleted.",
+				"confirmButton": "Delete account",
+				"deleteError": "Could not delete your account. Please try again."
 			}
 		},
 		"notificationsPage": {

@@ -321,6 +321,17 @@
 				"nameRequired": "Name ist erforderlich",
 				"nameShort": "Der Name muss mindestens 2 Zeichen lang sein",
 				"invalidEmail": "Ungültige E-Mail-Adresse"
+			},
+			"dangerZone": {
+				"title": "Gefahrenzone",
+				"subtitle": "Unwiderrufliche Aktionen für dein Konto.",
+				"deleteTitle": "Konto löschen",
+				"deleteDescription": "Lösche dein Konto und deine persönlichen Daten dauerhaft.",
+				"deleteButton": "Konto löschen",
+				"confirmTitle": "Konto wirklich löschen?",
+				"confirmDescription": "Dadurch wird dein Konto dauerhaft gelöscht und kann nicht wiederhergestellt werden. Arbeitsbereiche, die nur dir gehören, werden ebenfalls gelöscht.",
+				"confirmButton": "Konto löschen",
+				"deleteError": "Konto konnte nicht gelöscht werden. Bitte versuche es erneut."
 			}
 		},
 		"notificationsPage": {
