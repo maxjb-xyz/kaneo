@@ -12,10 +12,12 @@ on:
         required: false
         type: boolean
         default: false
+  push:
+    tags:
+      - 'v*'
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-push-image:
@@ -49,7 +51,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GH_PACKAGE_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata
         id: meta
@@ -57,8 +59,9 @@ jobs:
         with:
           images: ${{ matrix.image }}
           tags: |
-            type=raw,value=${{ inputs.version }}
-            type=raw,value=latest,enable=${{ inputs.latest }}
+            type=semver,pattern={{version}}
+            type=raw,value=${{ inputs.version }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.version != '' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'push' || inputs.latest }}
 
       - name: Build and push
         uses: docker/build-push-action@v7
