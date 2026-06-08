@@ -65,6 +65,12 @@ type CreateTaskModalProps = {
   onClose: () => void;
   status?: string;
   projectId?: string;
+  /**
+   * Force the in-modal project picker and ignore any ambient project context
+   * (the global project store / route). Used by the workspace-wide All Tasks
+   * page, where there is no active project and the store may hold a stale one.
+   */
+  selectableProject?: boolean;
 };
 
 type Priority = "no-priority" | "low" | "medium" | "high" | "urgent";
@@ -117,6 +123,7 @@ function CreateTaskModal({
   onClose,
   status,
   projectId,
+  selectableProject = false,
 }: CreateTaskModalProps) {
   const { t } = useTranslation();
   const { project, setProject } = useProjectStore();
@@ -212,9 +219,15 @@ function CreateTaskModal({
 
   const routeProjectId =
     location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? null;
-  const needsProjectPicker = !(projectId || project?.id || routeProjectId);
+  // When `selectableProject` is set, ignore any ambient project context (the
+  // global store / current route) so the picker always shows and the task is
+  // created into the explicitly chosen project.
+  const ambientProjectId = selectableProject
+    ? null
+    : (project?.id ?? routeProjectId);
+  const needsProjectPicker = !(projectId || ambientProjectId);
   const resolvedProjectId =
-    projectId || project?.id || routeProjectId || pickedProjectId || "";
+    projectId || ambientProjectId || pickedProjectId || "";
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const draftCreationPromiseRef = useRef<Promise<Task> | null>(null);

@@ -145,6 +145,7 @@ function RouteComponent() {
         <CreateTaskModal
           open={isCreateOpen}
           onClose={() => setIsCreateOpen(false)}
+          selectableProject
         />
       </div>
     </AllTasksLayout>

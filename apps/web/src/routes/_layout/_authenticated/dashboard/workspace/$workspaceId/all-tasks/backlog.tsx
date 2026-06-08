@@ -610,6 +610,7 @@ function RouteComponent() {
           open={isTaskModalOpen}
           onClose={() => setIsTaskModalOpen(false)}
           status="planned"
+          selectableProject
         />
 
         <TaskDetailsSheet
